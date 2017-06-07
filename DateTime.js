@@ -18,7 +18,7 @@ var Datetime = createClass({
 		onChange: TYPES.func,
 		locale: TYPES.string,
 		utc: TYPES.bool,
-		input: TYPES.bool,
+		input: TYPES.oneOfType([TYPES.bool, TYPES.func]),
 		// dateFormat: TYPES.string | TYPES.bool,
 		// timeFormat: TYPES.string | TYPES.bool,
 		inputProps: TYPES.object,
@@ -409,7 +409,7 @@ var Datetime = createClass({
 		;
 
 		if ( this.props.input ) {
-			children = [ DOM.input( assign({
+      var inputProps = assign({
 				key: 'i',
 				type: 'text',
 				className: 'form-control',
@@ -417,7 +417,10 @@ var Datetime = createClass({
 				onChange: this.onInputChange,
 				onKeyDown: this.onInputKey,
 				value: this.state.inputValue
-			}, this.props.inputProps ))];
+			}, this.props.inputProps );
+			children = typeof this.props.input === 'function'
+      ? [this.props.input(inputProps)]
+      : [DOM.input(inputProps)];
 		} else {
 			className += ' rdtStatic';
 		}

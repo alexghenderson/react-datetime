@@ -79,7 +79,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			onChange: TYPES.func,
 			locale: TYPES.string,
 			utc: TYPES.bool,
-			input: TYPES.bool,
+			input: TYPES.oneOfType([TYPES.bool, TYPES.func]),
 			// dateFormat: TYPES.string | TYPES.bool,
 			// timeFormat: TYPES.string | TYPES.bool,
 			inputProps: TYPES.object,
@@ -470,7 +470,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			;
 
 			if ( this.props.input ) {
-				children = [ DOM.input( assign({
+	      var inputProps = assign({
 					key: 'i',
 					type: 'text',
 					className: 'form-control',
@@ -478,7 +478,10 @@ return /******/ (function(modules) { // webpackBootstrap
 					onChange: this.onInputChange,
 					onKeyDown: this.onInputKey,
 					value: this.state.inputValue
-				}, this.props.inputProps ))];
+				}, this.props.inputProps );
+				children = typeof this.props.input === 'function'
+	      ? [this.props.input(inputProps)]
+	      : [DOM.input(inputProps)];
 			} else {
 				className += ' rdtStatic';
 			}
@@ -757,6 +760,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	process.removeListener = noop;
 	process.removeAllListeners = noop;
 	process.emit = noop;
+	process.prependListener = noop;
+	process.prependOnceListener = noop;
+
+	process.listeners = function (name) { return [] }
 
 	process.binding = function (name) {
 	    throw new Error('process.binding is not supported');
@@ -1095,6 +1102,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return emptyFunction.thatReturnsNull;
 	    }
 
+	    for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
+	      var checker = arrayOfTypeCheckers[i];
+	      if (typeof checker !== 'function') {
+	        warning(
+	          false,
+	          'Invalid argument supplid to oneOfType. Expected an array of check functions, but ' +
+	          'received %s at index %s.',
+	          getPostfixForTypeWarning(checker),
+	          i
+	        );
+	        return emptyFunction.thatReturnsNull;
+	      }
+	    }
+
 	    function validate(props, propName, componentName, location, propFullName) {
 	      for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
 	        var checker = arrayOfTypeCheckers[i];
@@ -1227,6 +1248,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	  // This handles more types than `getPropType`. Only used for error messages.
 	  // See `createPrimitiveTypeChecker`.
 	  function getPreciseType(propValue) {
+	    if (typeof propValue === 'undefined' || propValue === null) {
+	      return '' + propValue;
+	    }
 	    var propType = getPropType(propValue);
 	    if (propType === 'object') {
 	      if (propValue instanceof Date) {
@@ -1236,6 +1260,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	    }
 	    return propType;
+	  }
+
+	  // Returns a string that is postfixed to a warning about an invalid type.
+	  // For example, "undefined" or "of type array"
+	  function getPostfixForTypeWarning(value) {
+	    var type = getPreciseType(value);
+	    switch (type) {
+	      case 'array':
+	      case 'object':
+	        return 'an ' + type;
+	      case 'boolean':
+	      case 'date':
+	      case 'regexp':
+	        return 'a ' + type;
+	      default:
+	        return type;
+	    }
 	  }
 
 	  // Returns class name of the object, if any.
@@ -1535,11 +1576,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var emptyFunction = __webpack_require__(5);
 	var invariant = __webpack_require__(6);
+	var ReactPropTypesSecret = __webpack_require__(8);
 
 	module.exports = function() {
-	  // Important!
-	  // Keep this list in sync with production version in `./factoryWithTypeCheckers.js`.
-	  function shim() {
+	  function shim(props, propName, componentName, location, propFullName, secret) {
+	    if (secret === ReactPropTypesSecret) {
+	      // It is still safe when called from React.
+	      return;
+	    }
 	    invariant(
 	      false,
 	      'Calling PropTypes validators directly is not supported by the `prop-types` package. ' +
@@ -1551,6 +1595,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  function getShim() {
 	    return shim;
 	  };
+	  // Important!
+	  // Keep this list in sync with production version in `./factoryWithTypeCheckers.js`.
 	  var ReactPropTypes = {
 	    array: shim,
 	    bool: shim,
