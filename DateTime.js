@@ -18,7 +18,7 @@ var Datetime = createClass({
 		onChange: TYPES.func,
 		locale: TYPES.string,
 		utc: TYPES.bool,
-		input: TYPES.oneOfType([TYPES.bool, TYPES.func]),
+		input: TYPES.bool,
 		// dateFormat: TYPES.string | TYPES.bool,
 		// timeFormat: TYPES.string | TYPES.bool,
 		inputProps: TYPES.object,
@@ -376,7 +376,7 @@ var Datetime = createClass({
 	},
 
 	componentProps: {
-		fromProps: ['value', 'isValidDate', 'renderDay', 'renderMonth', 'renderYear', 'timeConstraints'],
+		fromProps: ['value', 'isValidDate', 'renderDay', 'renderMonth', 'renderYear', 'renderInput', 'timeConstraints'],
 		fromState: ['viewDate', 'selectedDate', 'updateOn'],
 		fromThis: ['setDate', 'setTime', 'showView', 'addTime', 'subtractTime', 'updateSelectedDate', 'localMoment', 'handleClickOutside']
 	},
@@ -400,6 +400,11 @@ var Datetime = createClass({
 		return props;
 	},
 
+  renderInput: function(props) {
+		var DOM = React.DOM;
+    return DOM.input(props);
+  },
+
 	render: function() {
 		var DOM = React.DOM,
 			className = 'rdt' + (this.props.className ?
@@ -409,6 +414,7 @@ var Datetime = createClass({
 		;
 
 		if ( this.props.input ) {
+      var renderer = this.props.renderInput || this.renderInput;
       var inputProps = assign({
 				key: 'i',
 				type: 'text',
@@ -418,9 +424,7 @@ var Datetime = createClass({
 				onKeyDown: this.onInputKey,
 				value: this.state.inputValue
 			}, this.props.inputProps );
-			children = typeof this.props.input === 'function'
-      ? [this.props.input(inputProps)]
-      : [DOM.input(inputProps)];
+			children = [renderer(inputProps)];
 		} else {
 			className += ' rdtStatic';
 		}
